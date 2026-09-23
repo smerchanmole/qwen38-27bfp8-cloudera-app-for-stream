@@ -31,7 +31,7 @@ No configure host ni puerto manualmente.
 
 ## Primera ejecución
 
-El primer arranque crea un virtualenv versionado dentro del proyecto, instala vLLM 0.29.0+cu129 y Transformers 5.15.0, ejecuta `pip check`, valida Torch/CUDA y finalmente inicia el servidor. Puede tardar varios minutos. Reinicios posteriores reutilizan el entorno validado y la caché de Hugging Face.
+El primer arranque crea un virtualenv versionado dentro del proyecto, instala vLLM 0.29.0+cu129 y Transformers 5.15.0, ejecuta `pip check`, valida Torch/CUDA y finalmente inicia el servidor. El Python del virtualenv se ejecuta en modo aislado para que los paquetes de Cloudera no entren en su resolución de dependencias. Puede tardar varios minutos. Reinicios posteriores reutilizan el entorno validado y la caché de Hugging Face.
 
 Se necesita acceso HTTPS a GitHub Releases, el índice PyTorch y PyPI, además de Hugging Face para descargar el modelo. En una red cerrada use `VLLM_WHEEL_URL`, `PYTORCH_INDEX_URL`, `QWEN_MODEL_ID` y `HF_HOME` para apuntar a mirrors y snapshots internos.
 

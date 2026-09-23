@@ -125,7 +125,8 @@ def install_environment() -> tuple[Path, dict[str, str]]:
 
     install_env = os.environ.copy()
     install_env["PIP_USER"] = "false"
-    for name in ("PIP_PREFIX", "PIP_TARGET", "PYTHONUSERBASE"):
+    install_env["PYTHONNOUSERSITE"] = "1"
+    for name in ("PIP_PREFIX", "PIP_TARGET", "PYTHONUSERBASE", "PYTHONPATH", "PYTHONHOME"):
         install_env.pop(name, None)
 
     with lock_path.open("a+") as lock_file:
@@ -150,6 +151,7 @@ def install_environment() -> tuple[Path, dict[str, str]]:
             commands = [
                 [
                     str(venv_python),
+                    "-I",
                     "-m",
                     "pip",
                     "install",
@@ -159,6 +161,7 @@ def install_environment() -> tuple[Path, dict[str, str]]:
                 ],
                 [
                     str(venv_python),
+                    "-I",
                     "-m",
                     "pip",
                     "install",
@@ -170,6 +173,7 @@ def install_environment() -> tuple[Path, dict[str, str]]:
                 ],
                 [
                     str(venv_python),
+                    "-I",
                     "-m",
                     "pip",
                     "install",
@@ -177,7 +181,7 @@ def install_environment() -> tuple[Path, dict[str, str]]:
                     "--upgrade",
                     f"transformers=={TRANSFORMERS_VERSION}",
                 ],
-                [str(venv_python), "-m", "pip", "check"],
+                [str(venv_python), "-I", "-m", "pip", "check"],
             ]
             for command in commands:
                 log("Running: " + shlex.join(command))
@@ -198,7 +202,7 @@ print('Transformers', transformers.__version__)
 print('Architecture', Qwen3_5ForConditionalGeneration.__name__)
 """
             subprocess.run(
-                [str(venv_python), "-c", verify_code],
+                [str(venv_python), "-I", "-c", verify_code],
                 env=install_env,
                 cwd=APP_DIR,
                 check=True,
@@ -212,6 +216,9 @@ print('Architecture', Qwen3_5ForConditionalGeneration.__name__)
             log(f"Reusing validated environment: {venv_dir.name}")
 
     server_env = os.environ.copy()
+    server_env["PYTHONNOUSERSITE"] = "1"
+    for name in ("PYTHONPATH", "PYTHONHOME", "PYTHONUSERBASE"):
+        server_env.pop(name, None)
     server_env["PATH"] = f"{venv_dir / 'bin'}:{server_env.get('PATH', '')}"
     server_env["VIRTUAL_ENV"] = str(venv_dir)
     server_env["PYTHONUNBUFFERED"] = "1"
@@ -246,6 +253,8 @@ def server_command(venv_python: Path, port: int) -> list[str]:
     # and the Cloudera-provided port.  Never replace this with 0.0.0.0.
     command = [
         str(venv_python),
+        "-u",
+        "-I",
         "-m",
         "vllm.entrypoints.openai.api_server",
         "--host",
