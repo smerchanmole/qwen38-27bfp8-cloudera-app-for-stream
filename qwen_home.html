@@ -52,8 +52,34 @@
     td:first-child { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #006b71; }
     .note { border-left: 3px solid #008b91; padding: 12px 16px; background: #eaf4f3; border-radius: 0 7px 7px 0; font-size: 14px; }
     .note p:last-child { margin-bottom: 0; }
+    .playground { margin-top: 0; }
+    .playground-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr); gap: 16px; }
+    .field { display: grid; gap: 7px; margin-bottom: 18px; }
+    .field label { font-size: 14px; font-weight: 650; }
+    .field small, .help { color: #53636b; font-size: 13px; }
+    input, textarea { width: 100%; min-width: 0; border: 1px solid #b9c9cb; border-radius: 7px; padding: 10px 12px; background: #fff; color: #17242b; font: inherit; }
+    textarea { min-height: 132px; resize: vertical; }
+    input[type="file"] { font-size: 13px; }
+    input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid #008b91; outline-offset: 2px; }
+    fieldset { margin: 0; padding: 0; border: 0; }
+    legend { margin-bottom: 16px; font-size: 17px; font-weight: 700; }
+    .parameter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+    .checkbox-field { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-size: 14px; font-weight: 650; }
+    .checkbox-field input { width: 17px; height: 17px; margin: 0; }
+    .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    button { border: 1px solid #006b71; border-radius: 7px; padding: 10px 17px; background: #006b71; color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
+    button:hover { background: #004b50; }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+    .secondary { background: #fff; color: #006b71; }
+    .secondary:hover { background: #eaf4f3; }
+    .result { margin-top: 16px; }
+    .result-output { min-height: 112px; margin: 0; padding: 18px; background: #f2f6f6; border: 1px solid #dce5e5; border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+    .request-status { min-height: 22px; margin: 12px 0 0; color: #53636b; font-size: 14px; }
+    .request-status[data-state="error"] { color: #a32121; }
+    .request-status[data-state="success"] { color: #075b5f; }
     footer { border-top: 1px solid #dce5e5; padding: 22px 0 36px; color: #53636b; font-size: 13px; }
-    @media (max-width: 760px) { .grid, .routes { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; padding-block: 16px; gap: 10px; } main { padding-top: 32px; } .panel { padding: 18px; } }
+    @media (max-width: 760px) { .grid, .routes, .playground-layout { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; padding-block: 16px; gap: 10px; } main { padding-top: 32px; } .panel { padding: 18px; } }
+    @media (max-width: 430px) { .parameter-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -61,6 +87,7 @@
     <div class="wrap topbar">
       <a class="brand" href="./">Qwen<span>3.8</span> · Cloudera Application</a>
       <nav aria-label="Navegación principal">
+        <a href="#probar">Probar</a>
         <a href="#empezar">Cómo llamar</a>
         <a href="#parametros">Parámetros</a>
         <a href="./docs">OpenAPI</a>
@@ -79,6 +106,64 @@
         <small class="muted">Para clientes OpenAI añade <code>/v1</code>. La URL pública puede requerir autenticación propia de Cloudera.</small>
       </div>
     </div>
+
+    <section id="probar" class="playground" aria-labelledby="probar-title">
+      <div class="section-head">
+        <h2 id="probar-title">Prueba el modelo aquí</h2>
+        <p>Escribe un mensaje, añade opcionalmente una imagen y ajusta los parámetros. La petición se envía desde este navegador a la misma Application.</p>
+      </div>
+      <form id="test-form">
+        <div class="playground-layout">
+          <div class="panel">
+            <div class="field">
+              <label for="model-name">Modelo servido</label>
+              <input id="model-name" type="text" value="qwen3.8-27b-fp8" required>
+              <small>Confirma el nombre en <a href="./v1/models">/v1/models</a> si cambiaste la configuración.</small>
+            </div>
+            <div class="field">
+              <label for="prompt">Mensaje</label>
+              <textarea id="prompt" name="prompt" placeholder="Por ejemplo: resume este texto o describe la imagen..."></textarea>
+              <small>Si adjuntas una imagen sin texto, se enviará «Describe la imagen».</small>
+            </div>
+            <div class="field">
+              <label for="image">Imagen opcional</label>
+              <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/webp">
+              <small>Una imagen PNG, JPEG o WebP, hasta 10 MiB. El servidor admite una imagen por petición.</small>
+            </div>
+            <div class="field">
+              <label for="api-key">QWEN_API_KEY, si está configurada</label>
+              <input id="api-key" name="api-key" type="password" autocomplete="off" placeholder="Dejar vacío si no se usa">
+              <small>Se envía solo en esta petición y no se guarda en la página.</small>
+            </div>
+          </div>
+          <fieldset class="panel">
+            <legend>Parámetros de generación</legend>
+            <div class="parameter-grid">
+              <div class="field"><label for="max-tokens">max_tokens</label><input id="max-tokens" type="number" min="1" max="262144" step="1" value="256" required><small>256 es un valor sugerido para probar.</small></div>
+              <div class="field"><label for="temperature">temperature</label><input id="temperature" type="number" min="0" max="2" step="0.05" value="1" required><small>Valor del modelo: 1.0.</small></div>
+              <div class="field"><label for="top-p">top_p</label><input id="top-p" type="number" min="0" max="1" step="0.01" value="0.95" required><small>Valor del modelo: 0.95.</small></div>
+              <div class="field"><label for="top-k">top_k</label><input id="top-k" type="number" min="0" step="1" value="20" required><small>Valor del modelo: 20.</small></div>
+              <div class="field"><label for="min-p">min_p</label><input id="min-p" type="number" min="0" max="1" step="0.01" value="0" required><small>Valor neutro: 0.</small></div>
+              <div class="field"><label for="repetition-penalty">repetition_penalty</label><input id="repetition-penalty" type="number" min="0.01" max="2" step="0.01" value="1" required><small>Valor neutro: 1.</small></div>
+              <div class="field"><label for="presence-penalty">presence_penalty</label><input id="presence-penalty" type="number" min="-2" max="2" step="0.1" value="0" required><small>Valor neutro: 0.</small></div>
+              <div class="field"><label for="frequency-penalty">frequency_penalty</label><input id="frequency-penalty" type="number" min="-2" max="2" step="0.1" value="0" required><small>Valor neutro: 0.</small></div>
+              <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" placeholder="Aleatoria"><small>Opcional.</small></div>
+              <div class="field"><label for="stop">stop</label><input id="stop" type="text" placeholder="Sin secuencia"><small>Una cadena opcional.</small></div>
+            </div>
+            <label class="checkbox-field" for="stream"><input id="stream" type="checkbox" checked> Streaming SSE</label>
+            <p class="help">Los valores de <code>temperature</code>, <code>top_p</code> y <code>top_k</code> vienen de la configuración cargada en tus logs. Los demás valores numéricos son neutros.</p>
+          </fieldset>
+        </div>
+        <div class="result">
+          <div class="actions">
+            <button id="send-button" type="submit">Enviar prueba</button>
+            <button id="cancel-button" class="secondary" type="button" disabled>Cancelar</button>
+          </div>
+          <p id="request-status" class="request-status" role="status" aria-live="polite">La respuesta aparecerá aquí.</p>
+          <div id="result-output" class="result-output" aria-label="Respuesta del modelo"></div>
+        </div>
+      </form>
+    </section>
 
     <section id="empezar" aria-labelledby="empezar-title">
       <div class="section-head">
@@ -173,6 +258,155 @@ for chunk in client.chat.completions.create(
     for (const node of document.querySelectorAll("[data-base-url]")) {
       node.textContent = node.textContent.replaceAll("{{BASE_URL}}", base);
     }
+
+    const form = document.getElementById("test-form");
+    const output = document.getElementById("result-output");
+    const status = document.getElementById("request-status");
+    const sendButton = document.getElementById("send-button");
+    const cancelButton = document.getElementById("cancel-button");
+    let controller = null;
+
+    function setStatus(message, state = "") {
+      status.textContent = message;
+      status.dataset.state = state;
+    }
+
+    function textFromContent(content) {
+      if (typeof content === "string") return content;
+      if (Array.isArray(content)) return content.map((part) => part.text || "").join("");
+      return "";
+    }
+
+    function readImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function readStreaming(response) {
+      if (!response.body) throw new Error("Este navegador no permite leer el streaming.");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = "";
+
+      function processEvent(event) {
+        const data = event.split("\n").filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart()).join("\n");
+        if (!data || data === "[DONE]") return;
+        const chunk = JSON.parse(data);
+        if (chunk.error) throw new Error(chunk.error.message || "Error de vLLM.");
+        output.textContent += textFromContent(chunk.choices?.[0]?.delta?.content);
+      }
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (value) pending += decoder.decode(value, { stream: true });
+        if (done) pending += decoder.decode();
+        pending = pending.replace(/\r\n/g, "\n");
+        let boundary;
+        while ((boundary = pending.indexOf("\n\n")) !== -1) {
+          processEvent(pending.slice(0, boundary));
+          pending = pending.slice(boundary + 2);
+        }
+        if (done) {
+          if (pending.trim()) processEvent(pending);
+          break;
+        }
+      }
+    }
+
+    cancelButton.addEventListener("click", () => controller?.abort());
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (controller || !form.reportValidity()) return;
+
+      const prompt = document.getElementById("prompt").value.trim();
+      const image = document.getElementById("image").files[0];
+      if (!prompt && !image) {
+        setStatus("Escribe un mensaje o selecciona una imagen.", "error");
+        document.getElementById("prompt").focus();
+        return;
+      }
+      if (image && (!["image/png", "image/jpeg", "image/webp"].includes(image.type) || image.size > 10 * 1024 * 1024)) {
+        setStatus("Selecciona una imagen PNG, JPEG o WebP de hasta 10 MiB.", "error");
+        document.getElementById("image").focus();
+        return;
+      }
+
+      controller = new AbortController();
+      sendButton.disabled = true;
+      cancelButton.disabled = false;
+      output.textContent = "";
+      setStatus(image ? "Preparando imagen..." : "Enviando petición...");
+      try {
+        let content = prompt;
+        if (image) {
+          const imageUrl = await readImage(image);
+          content = [
+            { type: "text", text: prompt || "Describe la imagen." },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ];
+        }
+        const stream = document.getElementById("stream").checked;
+        const payload = {
+          model: document.getElementById("model-name").value.trim(),
+          messages: [{ role: "user", content }],
+          max_tokens: Number(document.getElementById("max-tokens").value),
+          temperature: Number(document.getElementById("temperature").value),
+          top_p: Number(document.getElementById("top-p").value),
+          top_k: Number(document.getElementById("top-k").value),
+          min_p: Number(document.getElementById("min-p").value),
+          repetition_penalty: Number(document.getElementById("repetition-penalty").value),
+          presence_penalty: Number(document.getElementById("presence-penalty").value),
+          frequency_penalty: Number(document.getElementById("frequency-penalty").value),
+          stream,
+        };
+        const seed = document.getElementById("seed").value.trim();
+        const stop = document.getElementById("stop").value;
+        if (seed) payload.seed = Number(seed);
+        if (stop) payload.stop = stop;
+        const headers = { "Content-Type": "application/json" };
+        const key = document.getElementById("api-key").value.trim();
+        if (key) headers.Authorization = `Bearer ${key}`;
+
+        setStatus("Esperando respuesta del modelo...");
+        const response = await fetch(new URL("./v1/chat/completions", window.location.href), {
+          method: "POST",
+          headers,
+          credentials: "same-origin",
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        const contentType = response.headers.get("content-type") || "";
+        if (!response.ok || (!contentType.includes("json") && !contentType.includes("event-stream"))) {
+          let detail = "";
+          if (contentType.includes("json")) {
+            const errorBody = await response.json();
+            detail = errorBody.error?.message || errorBody.detail || "";
+          }
+          throw new Error(detail || `HTTP ${response.status}. Comprueba el acceso a Cloudera y la API key.`);
+        }
+        if (stream) {
+          setStatus("Recibiendo respuesta en streaming...");
+          await readStreaming(response);
+        } else {
+          const result = await response.json();
+          if (result.error) throw new Error(result.error.message || "Error de vLLM.");
+          output.textContent = textFromContent(result.choices?.[0]?.message?.content);
+        }
+        if (!output.textContent) output.textContent = "La petición terminó sin texto de respuesta.";
+        setStatus("Petición completada.", "success");
+      } catch (error) {
+        setStatus(error.name === "AbortError" ? "Petición cancelada." : `Error: ${error.message}`, "error");
+      } finally {
+        controller = null;
+        sendButton.disabled = false;
+        cancelButton.disabled = true;
+      }
+    });
   </script>
 </body>
 </html>
