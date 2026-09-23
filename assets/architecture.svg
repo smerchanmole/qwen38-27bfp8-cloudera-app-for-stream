@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 770" role="img" aria-labelledby="title desc">
+  <title id="title">Cómo arranca y cómo responde la Application Qwen3.8</title>
+  <desc id="desc">Primero GitHub alimenta la Application, app.py crea un entorno aislado, valida dependencias y arranca vLLM con Qwen en una A100. Después el navegador o SDK pasa por Cloudera, llama a la API y recibe una respuesta normal o streaming SSE.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#47d8c7"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="770" rx="28" fill="#0b1b24"/>
+  <path d="M0 81 H1280 M0 389 H1280 M0 699 H1280" stroke="#203943" stroke-width="1"/>
+  <circle cx="1198" cy="49" r="6" fill="#47d8c7"/>
+  <circle cx="1221" cy="49" r="6" fill="#eebf72"/>
+  <circle cx="1244" cy="49" r="6" fill="#48646e"/>
+  <text x="76" y="55" fill="#eaf6f5" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700">Qwen3.8 en Cloudera</text>
+  <text x="76" y="116" fill="#47d8c7" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2">01  ARRANQUE DE LA APPLICATION</text>
+  <text x="76" y="425" fill="#47d8c7" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2">02  CADA PETICIÓN</text>
+
+  <g fill="none" stroke="#47d8c7" stroke-width="3" marker-end="url(#arrow)">
+    <path d="M274 244 H299"/><path d="M506 244 H531"/><path d="M738 244 H763"/><path d="M970 244 H995"/>
+    <path d="M274 554 H299"/><path d="M506 554 H531"/><path d="M738 554 H763"/><path d="M970 554 H995"/>
+  </g>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <g transform="translate(74 145)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <circle cx="31" cy="34" r="17" fill="#235c61"/><text x="31" y="40" text-anchor="middle" fill="#eafffc" font-size="17" font-weight="700">1</text>
+      <text x="20" y="89" fill="#fff" font-size="22" font-weight="700">GitHub</text>
+      <text x="20" y="121" fill="#b9d0d2" font-size="16">Repositorio con</text>
+      <text x="20" y="145" fill="#b9d0d2" font-size="16">app.py, portada</text>
+      <text x="20" y="169" fill="#b9d0d2" font-size="16">y documentación.</text>
+    </g>
+    <g transform="translate(306 145)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <circle cx="31" cy="34" r="17" fill="#235c61"/><text x="31" y="40" text-anchor="middle" fill="#eafffc" font-size="17" font-weight="700">2</text>
+      <text x="20" y="89" fill="#fff" font-size="22" font-weight="700">Cloudera</text>
+      <text x="20" y="121" fill="#b9d0d2" font-size="16">Application lanza</text>
+      <text x="20" y="145" fill="#b9d0d2" font-size="16">app.py con una</text>
+      <text x="20" y="169" fill="#b9d0d2" font-size="16">A100 completa.</text>
+    </g>
+    <g transform="translate(538 145)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <circle cx="31" cy="34" r="17" fill="#235c61"/><text x="31" y="40" text-anchor="middle" fill="#eafffc" font-size="17" font-weight="700">3</text>
+      <text x="20" y="89" fill="#fff" font-size="22" font-weight="700">Entorno</text>
+      <text x="20" y="121" fill="#b9d0d2" font-size="16">venv aislado;</text>
+      <text x="20" y="145" fill="#b9d0d2" font-size="16">instala y verifica</text>
+      <text x="20" y="169" fill="#b9d0d2" font-size="16">vLLM y CUDA.</text>
+    </g>
+    <g transform="translate(770 145)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <circle cx="31" cy="34" r="17" fill="#235c61"/><text x="31" y="40" text-anchor="middle" fill="#eafffc" font-size="17" font-weight="700">4</text>
+      <text x="20" y="89" fill="#fff" font-size="22" font-weight="700">Modelo</text>
+      <text x="20" y="121" fill="#b9d0d2" font-size="16">Descarga pesos,</text>
+      <text x="20" y="145" fill="#b9d0d2" font-size="16">carga Qwen y</text>
+      <text x="20" y="169" fill="#b9d0d2" font-size="16">prepara la GPU.</text>
+    </g>
+    <g transform="translate(1002 145)">
+      <rect width="200" height="198" rx="18" fill="#154039" stroke="#2e9f8e"/>
+      <circle cx="31" cy="34" r="17" fill="#2da994"/><text x="31" y="40" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">5</text>
+      <text x="20" y="89" fill="#fff" font-size="22" font-weight="700">API lista</text>
+      <text x="20" y="121" fill="#c9eee7" font-size="16">Escucha en</text>
+      <text x="20" y="145" fill="#c9eee7" font-size="16">127.0.0.1 y</text>
+      <text x="20" y="169" fill="#c9eee7" font-size="16">CDSW_APP_PORT.</text>
+    </g>
+
+    <g transform="translate(74 455)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <text x="20" y="65" fill="#fff" font-size="22" font-weight="700">Cliente</text>
+      <text x="20" y="103" fill="#b9d0d2" font-size="16">Portada, curl o</text>
+      <text x="20" y="127" fill="#b9d0d2" font-size="16">SDK de OpenAI.</text>
+      <rect x="20" y="151" width="74" height="26" rx="13" fill="#24555a"/><text x="57" y="169" text-anchor="middle" fill="#e9fffb" font-size="12" font-weight="700">HTTPS</text>
+    </g>
+    <g transform="translate(306 455)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <text x="20" y="65" fill="#fff" font-size="22" font-weight="700">Acceso</text>
+      <text x="20" y="103" fill="#b9d0d2" font-size="16">Ingress y permisos</text>
+      <text x="20" y="127" fill="#b9d0d2" font-size="16">de Cloudera.</text>
+      <text x="20" y="164" fill="#eebf72" font-size="13">Auth según instalación</text>
+    </g>
+    <g transform="translate(538 455)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <text x="20" y="65" fill="#fff" font-size="22" font-weight="700">OpenAI API</text>
+      <text x="20" y="103" fill="#b9d0d2" font-size="16">POST /v1/chat/</text>
+      <text x="20" y="127" fill="#b9d0d2" font-size="16">completions</text>
+      <text x="20" y="164" fill="#47d8c7" font-size="13">texto + 1 imagen</text>
+    </g>
+    <g transform="translate(770 455)">
+      <rect width="200" height="198" rx="18" fill="#142c35" stroke="#31525b"/>
+      <text x="20" y="65" fill="#fff" font-size="22" font-weight="700">vLLM + GPU</text>
+      <text x="20" y="103" fill="#b9d0d2" font-size="16">Procesa entrada</text>
+      <text x="20" y="127" fill="#b9d0d2" font-size="16">y genera tokens.</text>
+      <text x="20" y="164" fill="#47d8c7" font-size="13">Qwen3.8-27B-FP8</text>
+    </g>
+    <g transform="translate(1002 455)">
+      <rect width="200" height="198" rx="18" fill="#154039" stroke="#2e9f8e"/>
+      <text x="20" y="65" fill="#fff" font-size="22" font-weight="700">Respuesta</text>
+      <text x="20" y="103" fill="#c9eee7" font-size="16">JSON completo o</text>
+      <text x="20" y="127" fill="#c9eee7" font-size="16">streaming SSE.</text>
+      <rect x="20" y="151" width="107" height="26" rx="13" fill="#2da994"/><text x="74" y="169" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">stream: true</text>
+    </g>
+  </g>
+  <text x="76" y="738" fill="#9fb8be" font-family="Arial, Helvetica, sans-serif" font-size="15">Un proceso vLLM · A100 80 GB · contexto configurable · 1 imagen por prompt · 0 vídeos</text>
+</svg>
