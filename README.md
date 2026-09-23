@@ -91,7 +91,9 @@ La primera línea aparece en reinicios posteriores. El criterio de arranque es l
 2. En **Prueba el modelo aquí**, escribe una pregunta corta y pulsa **Enviar prueba**. La respuesta aparece en la misma página.
 3. Adjunta una imagen PNG, JPEG o WebP si quieres probar visión. El formulario admite **una imagen de hasta 10 MiB**.
 4. Activa o desactiva **Streaming SSE** para comparar la respuesta por fragmentos con la respuesta completa.
-5. Comprueba las rutas [`/health`](#rutas-disponibles) y [`/v1/models`](#rutas-disponibles). Si cambiaste `QWEN_SERVED_MODEL_NAME`, utiliza el nombre que devuelve `/v1/models`.
+5. En **Opciones avanzadas** puedes elegir razonamiento bajo, medio, muy alto o desactivado; pedir solo JSON o un JSON Schema; y añadir instrucciones de sistema.
+6. Tras enviar una prueba, compara las cajas **Petición JSON** y **Respuesta del modelo**. La primera muestra el cuerpo que se envió; si hay una imagen, abrevia únicamente su base64 en pantalla. La clave API va en una cabecera y no aparece en esa caja.
+7. Comprueba las rutas [`/health`](#rutas-disponibles) y [`/v1/models`](#rutas-disponibles). Si cambiaste `QWEN_SERVED_MODEL_NAME`, utiliza el nombre que devuelve `/v1/models`.
 
 Los controles empiezan con `temperature=1`, `top_p=0.95` y `top_k=20`, los valores de `generation_config.json` que aparecen en los logs. `max_tokens=256` es **solo un valor cómodo para probar**, no un límite fijo del servidor. Los campos `seed` y `stop` quedan vacíos.
 
@@ -189,8 +191,32 @@ Estos campos van en el JSON de `/v1/chat/completions`. En el SDK de OpenAI, los 
 | `repetition_penalty` | `1` | Penalización de repetición; uno es neutro. |
 | `presence_penalty` / `frequency_penalty` | `0` / `0` | Ajustan la presencia y frecuencia de términos. |
 | `seed` / `stop` | Vacíos | Semilla opcional y secuencia de parada opcional. |
+| `reasoning_effort` | Se omite: Qwen usa `xhigh` | Profundidad del razonamiento; este modelo admite `low`, `medium` y `xhigh`. |
+| `chat_template_kwargs` | Se omite | Al elegir «Sin razonamiento», se envía `{"enable_thinking": false}`. |
+| `response_format` | Se omite: texto libre | `{"type":"json_object"}` o `{"type":"json_schema","json_schema":{"name":"playground_response","schema":{...}}}`. |
+| Mensaje `system` | Vacío | Instrucciones adicionales antes del mensaje de usuario. |
 
-El máximo de contexto del servidor es **262 144 tokens** por defecto. La entrada más la salida deben caber dentro de ese límite; `max_tokens` no amplía el contexto. vLLM admite además `response_format` y otros campos avanzados descritos en `/docs`.
+El máximo de contexto del servidor es **262 144 tokens** por defecto. La entrada más la salida deben caber dentro de ese límite; `max_tokens` no amplía el contexto.
+
+### Razonamiento y JSON
+
+Qwen3.8 usa razonamiento `xhigh` por defecto. El selector manda `reasoning_effort` cuando eliges `low`, `medium` o `xhigh`. «Sin razonamiento» manda `chat_template_kwargs.enable_thinking=false`; la [ficha oficial del modelo](https://huggingface.co/Qwen/Qwen3.8-27B-FP8) recomienda para ese modo `temperature=0.7`, `top_p=0.8` y `presence_penalty=1.5`, que puedes introducir en el probador. El formulario no cambia los controles de muestreo por ti.
+
+Al elegir un modo JSON, el probador selecciona inicialmente «Sin razonamiento» para facilitar una salida JSON válida. Puedes volver a seleccionar un nivel de razonamiento si arrancaste la Application con `QWEN_REASONING_PARSER=qwen3`; ese parser separa el razonamiento de la respuesta final. Sin parser, el razonamiento puede impedir que la respuesta cumpla el formato JSON. El campo «JSON con esquema» valida que escribas un objeto JSON antes de enviarlo; el servidor aplica las restricciones del esquema. Los modos JSON funcionan con o sin streaming y el probador comprueba el resultado al terminar.
+
+Ejemplo de petición JSON directa:
+
+```json
+{
+  "model": "qwen3.8-27b-fp8",
+  "messages": [{"role": "user", "content": "Devuelve un saludo"}],
+  "chat_template_kwargs": {"enable_thinking": false},
+  "response_format": {"type": "json_object"},
+  "max_tokens": 256
+}
+```
+
+La [referencia de salidas estructuradas de vLLM 0.29.0](https://docs.vllm.ai/en/v0.29.0/features/structured_outputs/) muestra más variantes. La lista completa de campos de esta instancia está en `/docs`.
 
 ## Configuración del servidor
 
@@ -210,6 +236,7 @@ Las siguientes son **variables de entorno de la Application**: se fijan antes de
 | `QWEN_CPU_OFFLOAD_GB` | `0` | No necesario en la A100 usada en la prueba. |
 | `QWEN_MAX_IMAGES_PER_PROMPT` | `1` | Número máximo de imágenes; el vídeo sigue en cero. |
 | `QWEN_API_KEY` | Vacío | Activar Bearer para rutas de API protegidas por vLLM. |
+| `QWEN_REASONING_PARSER` | Vacío | Usa `qwen3` para separar el razonamiento de la respuesta final, especialmente si combinas razonamiento y JSON. |
 | `HF_TOKEN` | Vacío | Guardar como secreto si necesitas más cuota de Hugging Face. |
 | `HF_HOME` | Caché HF por defecto | Apuntar a almacenamiento persistente. |
 | `QWEN_FORCE_REINSTALL` | `false` | Poner en `true` para reinstalar y revalidar el virtualenv en el siguiente arranque. |
@@ -261,6 +288,8 @@ Los cambios solo de README no alteran el proceso. Los cambios de la portada se c
 - [Proyectos Cloudera desde Git](https://docs.cloudera.com/machine-learning/cloud/projects/topics/ml-projects.html)
 - [Seguridad de Applications en Cloudera](https://docs.cloudera.com/machine-learning/cloud/applications/topics/ml-securing-applications.html)
 - [Servidor OpenAI compatible de vLLM 0.29.0](https://docs.vllm.ai/en/v0.29.0/serving/online_serving/openai_compatible_server/)
+- [Ficha oficial de Qwen3.8-27B-FP8](https://huggingface.co/Qwen/Qwen3.8-27B-FP8)
+- [Razonamiento en vLLM 0.29.0](https://docs.vllm.ai/en/v0.29.0/features/reasoning_outputs/)
 - [Seguridad de vLLM 0.29.0](https://docs.vllm.ai/en/v0.29.0/usage/security/)
 
 <details>

@@ -57,13 +57,17 @@
     .field { display: grid; gap: 7px; margin-bottom: 18px; }
     .field label { font-size: 14px; font-weight: 650; }
     .field small, .help { color: #53636b; font-size: 13px; }
-    input, textarea { width: 100%; min-width: 0; border: 1px solid #b9c9cb; border-radius: 7px; padding: 10px 12px; background: #fff; color: #17242b; font: inherit; }
+    input, textarea, select { width: 100%; min-width: 0; border: 1px solid #b9c9cb; border-radius: 7px; padding: 10px 12px; background: #fff; color: #17242b; font: inherit; }
     textarea { min-height: 132px; resize: vertical; }
     input[type="file"] { font-size: 13px; }
-    input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid #008b91; outline-offset: 2px; }
+    input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid #008b91; outline-offset: 2px; }
     fieldset { margin: 0; padding: 0; border: 0; }
     legend { margin-bottom: 16px; font-size: 17px; font-weight: 700; }
     .parameter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; }
+    .advanced-panel { margin-top: 16px; }
+    .advanced-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+    .advanced-panel textarea { min-height: 90px; }
+    .advanced-panel [hidden] { display: none; }
     .checkbox-field { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; font-size: 14px; font-weight: 650; }
     .checkbox-field input { width: 17px; height: 17px; margin: 0; }
     .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -73,12 +77,16 @@
     .secondary { background: #fff; color: #006b71; }
     .secondary:hover { background: #eaf4f3; }
     .result { margin-top: 16px; }
+    .result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 12px; }
+    .result-card { min-width: 0; }
+    .result-card h3 { margin-bottom: 8px; }
     .result-output { min-height: 112px; margin: 0; padding: 18px; background: #f2f6f6; border: 1px solid #dce5e5; border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+    .request-preview { max-height: 420px; overflow: auto; color: #17242b; }
     .request-status { min-height: 22px; margin: 12px 0 0; color: #53636b; font-size: 14px; }
     .request-status[data-state="error"] { color: #a32121; }
     .request-status[data-state="success"] { color: #075b5f; }
     footer { border-top: 1px solid #dce5e5; padding: 22px 0 36px; color: #53636b; font-size: 13px; }
-    @media (max-width: 760px) { .grid, .routes, .playground-layout { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; padding-block: 16px; gap: 10px; } main { padding-top: 32px; } .panel { padding: 18px; } }
+    @media (max-width: 760px) { .grid, .routes, .playground-layout, .advanced-grid, .result-grid { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; padding-block: 16px; gap: 10px; } main { padding-top: 32px; } .panel { padding: 18px; } }
     @media (max-width: 430px) { .parameter-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -154,13 +162,59 @@
             <p class="help">Los valores de <code>temperature</code>, <code>top_p</code> y <code>top_k</code> vienen de la configuración cargada en tus logs. Los demás valores numéricos son neutros.</p>
           </fieldset>
         </div>
+        <fieldset class="panel advanced-panel">
+          <legend>Opciones avanzadas</legend>
+          <div class="advanced-grid">
+            <div class="field">
+              <label for="reasoning-effort">Nivel de razonamiento</label>
+              <select id="reasoning-effort">
+                <option value="">Por defecto del modelo (xhigh)</option>
+                <option value="low">Bajo · low</option>
+                <option value="medium">Medio · medium</option>
+                <option value="xhigh">Muy alto · xhigh</option>
+                <option value="off">Sin razonamiento</option>
+              </select>
+              <small>Qwen3.8 admite low, medium y xhigh. Desactivarlo envía <code>enable_thinking: false</code>.</small>
+            </div>
+            <div class="field">
+              <label for="response-format">Formato de salida</label>
+              <select id="response-format">
+                <option value="text">Texto libre (por defecto)</option>
+                <option value="json_object">Solo JSON</option>
+                <option value="json_schema">JSON con esquema</option>
+              </select>
+              <small>Los modos JSON utilizan <code>response_format</code> de vLLM.</small>
+            </div>
+          </div>
+          <div class="field" id="schema-field" hidden>
+            <label for="json-schema">Esquema JSON</label>
+            <textarea id="json-schema" spellcheck="false">{"type":"object","properties":{"respuesta":{"type":"string"}},"required":["respuesta"],"additionalProperties":false}</textarea>
+            <small>Pega un objeto JSON Schema. Se valida antes de enviar la petición.</small>
+          </div>
+          <div class="field">
+            <label for="system-prompt">Instrucciones de sistema (opcional)</label>
+            <textarea id="system-prompt" placeholder="Por ejemplo: responde siempre en español."></textarea>
+            <small>Se envían como mensaje <code>system</code> antes de la pregunta.</small>
+          </div>
+          <p class="help">Para combinar JSON y razonamiento activa <code>QWEN_REASONING_PARSER=qwen3</code> al arrancar la Application. En modo JSON, el probador selecciona «Sin razonamiento» inicialmente para facilitar una respuesta JSON válida.</p>
+        </fieldset>
         <div class="result">
           <div class="actions">
             <button id="send-button" type="submit">Enviar prueba</button>
             <button id="cancel-button" class="secondary" type="button" disabled>Cancelar</button>
           </div>
           <p id="request-status" class="request-status" role="status" aria-live="polite">La respuesta aparecerá aquí.</p>
-          <div id="result-output" class="result-output" aria-label="Respuesta del modelo"></div>
+          <div class="result-grid">
+            <div class="result-card">
+              <h3>Petición JSON</h3>
+              <pre id="request-preview" class="result-output request-preview" aria-label="JSON de la petición">Envía una prueba para ver aquí el JSON.</pre>
+              <p class="help">La imagen se abrevia en esta vista; al servidor se envía completa. La clave API se envía en una cabecera y no aparece aquí.</p>
+            </div>
+            <div class="result-card">
+              <h3>Respuesta del modelo</h3>
+              <div id="result-output" class="result-output" aria-label="Respuesta del modelo"></div>
+            </div>
+          </div>
         </div>
       </form>
     </section>
@@ -242,7 +296,9 @@ for chunk in client.chat.completions.create(
             <tr><td>frequency_penalty</td><td>Penaliza términos frecuentes</td><td>Parámetro compatible con Chat Completions.</td></tr>
             <tr><td>stop</td><td>Texto que detiene la salida</td><td>Cadena o lista de cadenas.</td></tr>
             <tr><td>seed</td><td>Semilla de muestreo</td><td>Puede ayudar a reproducir una petición.</td></tr>
-            <tr><td>response_format</td><td>Formato restringido, por ejemplo JSON</td><td>Consulta el esquema de <a href="./docs">/docs</a> para sus variantes.</td></tr>
+            <tr><td>reasoning_effort</td><td>Nivel de razonamiento</td><td>Qwen3.8 admite <code>low</code>, <code>medium</code> y <code>xhigh</code> (por defecto).</td></tr>
+            <tr><td>chat_template_kwargs</td><td>Opciones de la plantilla del modelo</td><td><code>{"enable_thinking":false}</code> desactiva el razonamiento.</td></tr>
+            <tr><td>response_format</td><td>Solo JSON o JSON Schema</td><td><code>json_object</code> o <code>json_schema</code>; consulta <a href="./docs">/docs</a>.</td></tr>
           </tbody>
         </table>
       </div>
@@ -261,10 +317,21 @@ for chunk in client.chat.completions.create(
 
     const form = document.getElementById("test-form");
     const output = document.getElementById("result-output");
+    const requestPreview = document.getElementById("request-preview");
     const status = document.getElementById("request-status");
     const sendButton = document.getElementById("send-button");
     const cancelButton = document.getElementById("cancel-button");
+    const reasoningEffort = document.getElementById("reasoning-effort");
+    const responseFormat = document.getElementById("response-format");
+    const schemaField = document.getElementById("schema-field");
+    const jsonSchema = document.getElementById("json-schema");
     let controller = null;
+
+    responseFormat.addEventListener("change", () => {
+      schemaField.hidden = responseFormat.value !== "json_schema";
+      jsonSchema.required = responseFormat.value === "json_schema";
+      if (responseFormat.value !== "text" && reasoningEffort.value === "") reasoningEffort.value = "off";
+    });
 
     function setStatus(message, state = "") {
       status.textContent = message;
@@ -335,11 +402,25 @@ for chunk in client.chat.completions.create(
         document.getElementById("image").focus();
         return;
       }
+      let schema;
+      if (responseFormat.value === "json_schema") {
+        try {
+          schema = JSON.parse(jsonSchema.value);
+          if (!schema || typeof schema !== "object" || Array.isArray(schema)) throw new Error();
+        } catch {
+          setStatus("El esquema debe ser un objeto JSON válido.", "error");
+          jsonSchema.setAttribute("aria-invalid", "true");
+          jsonSchema.focus();
+          return;
+        }
+        jsonSchema.removeAttribute("aria-invalid");
+      }
 
       controller = new AbortController();
       sendButton.disabled = true;
       cancelButton.disabled = false;
       output.textContent = "";
+      requestPreview.textContent = "Preparando petición...";
       setStatus(image ? "Preparando imagen..." : "Enviando petición...");
       try {
         let content = prompt;
@@ -351,9 +432,13 @@ for chunk in client.chat.completions.create(
           ];
         }
         const stream = document.getElementById("stream").checked;
+        const messages = [];
+        const systemPrompt = document.getElementById("system-prompt").value.trim();
+        if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
+        messages.push({ role: "user", content });
         const payload = {
           model: document.getElementById("model-name").value.trim(),
-          messages: [{ role: "user", content }],
+          messages,
           max_tokens: Number(document.getElementById("max-tokens").value),
           temperature: Number(document.getElementById("temperature").value),
           top_p: Number(document.getElementById("top-p").value),
@@ -368,6 +453,19 @@ for chunk in client.chat.completions.create(
         const stop = document.getElementById("stop").value;
         if (seed) payload.seed = Number(seed);
         if (stop) payload.stop = stop;
+        if (reasoningEffort.value === "off") payload.chat_template_kwargs = { enable_thinking: false };
+        else if (reasoningEffort.value) payload.reasoning_effort = reasoningEffort.value;
+        if (responseFormat.value === "json_object") payload.response_format = { type: "json_object" };
+        if (responseFormat.value === "json_schema") {
+          payload.response_format = { type: "json_schema", json_schema: { name: "playground_response", schema } };
+        }
+        const previewPayload = JSON.parse(JSON.stringify(payload));
+        if (image) {
+          for (const part of previewPayload.messages.at(-1).content) {
+            if (part.type === "image_url") part.image_url.url = `[imagen base64 omitida: ${image.name}, ${image.size} bytes]`;
+          }
+        }
+        requestPreview.textContent = JSON.stringify(previewPayload, null, 2);
         const headers = { "Content-Type": "application/json" };
         const key = document.getElementById("api-key").value.trim();
         if (key) headers.Authorization = `Bearer ${key}`;
@@ -396,6 +494,14 @@ for chunk in client.chat.completions.create(
           const result = await response.json();
           if (result.error) throw new Error(result.error.message || "Error de vLLM.");
           output.textContent = textFromContent(result.choices?.[0]?.message?.content);
+        }
+        if (responseFormat.value !== "text" && output.textContent) {
+          try {
+            output.textContent = JSON.stringify(JSON.parse(output.textContent), null, 2);
+          } catch {
+            setStatus("La petición terminó, pero el contenido no es JSON válido. Revisa el razonamiento y el límite de tokens.", "error");
+            return;
+          }
         }
         if (!output.textContent) output.textContent = "La petición terminó sin texto de respuesta.";
         setStatus("Petición completada.", "success");
