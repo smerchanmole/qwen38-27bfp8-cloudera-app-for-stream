@@ -17,6 +17,7 @@ import json
 import os
 import platform
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -215,6 +216,18 @@ print('Architecture', Qwen3_5ForConditionalGeneration.__name__)
         else:
             log(f"Reusing validated environment: {venv_dir.name}")
 
+        # vLLM runs with -I, so it cannot import modules from the project
+        # directory. Copy the small landing-page middleware into its venv on
+        # every start; changes to the page do not require reinstalling vLLM.
+        site_packages = (
+            venv_dir
+            / "lib"
+            / f"python{sys.version_info.major}.{sys.version_info.minor}"
+            / "site-packages"
+        )
+        for filename in ("qwen_home.py", "qwen_home.html"):
+            shutil.copyfile(APP_DIR / filename, site_packages / filename)
+
     server_env = os.environ.copy()
     server_env["PYTHONNOUSERSITE"] = "1"
     for name in ("PYTHONPATH", "PYTHONHOME", "PYTHONUSERBASE"):
@@ -261,6 +274,8 @@ def server_command(venv_python: Path, port: int) -> list[str]:
         "127.0.0.1",
         "--port",
         str(port),
+        "--middleware",
+        "qwen_home.HomePageMiddleware",
         "--model",
         model_id,
         "--served-model-name",

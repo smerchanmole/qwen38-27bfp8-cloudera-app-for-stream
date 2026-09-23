@@ -70,6 +70,11 @@ GET /health
 GET /v1/models
 ```
 
+Abra la URL de la Application en el navegador para ver la guía inicial con
+ejemplos de `curl` y Python, autenticación y parámetros de generación. La guía
+se sirve en `/`; la API y el esquema interactivo de vLLM siguen disponibles en
+`/v1/*` y `/docs`.
+
 Ejemplo Python:
 
 ```python

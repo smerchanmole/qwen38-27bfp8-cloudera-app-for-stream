@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Qwen3.8 · API de la Application</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #17242b; background: #f5f7f7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; line-height: 1.55; }
+    a { color: #006b71; text-underline-offset: 3px; }
+    a:hover { color: #004b50; }
+    a:focus-visible { outline: 3px solid #008b91; outline-offset: 3px; border-radius: 3px; }
+    .wrap { width: min(100% - 40px, 1080px); margin-inline: auto; }
+    header { border-bottom: 1px solid #dce5e5; background: #fff; }
+    .topbar { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { font-size: 15px; font-weight: 700; color: #17242b; text-decoration: none; }
+    .brand span { color: #007b80; }
+    nav { display: flex; flex-wrap: wrap; gap: 18px; font-size: 14px; }
+    main { padding-block: 46px 80px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 780px; font-size: clamp(32px, 5vw, 54px); line-height: 1.1; margin-bottom: 18px; }
+    h2 { font-size: 25px; line-height: 1.2; margin-bottom: 12px; }
+    h3 { font-size: 17px; line-height: 1.3; margin-bottom: 7px; }
+    p { max-width: 70ch; }
+    .muted { color: #53636b; }
+    .eyebrow { color: #006b71; font-size: 13px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
+    .lead { font-size: 18px; color: #42545c; }
+    .hero { padding-bottom: 38px; }
+    .status { display: inline-flex; align-items: center; gap: 9px; padding: 6px 11px; border: 1px solid #b8d9d7; border-radius: 999px; background: #e9f5f3; color: #075b5f; font-size: 13px; font-weight: 650; margin-bottom: 20px; }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #148876; }
+    .panel { min-width: 0; border: 1px solid #dce5e5; border-radius: 12px; background: #fff; padding: 24px; }
+    .base { display: grid; gap: 8px; margin-top: 24px; }
+    .base code { display: block; padding: 14px 16px; background: #eff5f4; border: 1px solid #d7e5e3; border-radius: 7px; overflow-wrap: anywhere; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    section { margin-top: 42px; }
+    .section-head { margin-bottom: 18px; }
+    .section-head p { color: #53636b; margin-bottom: 0; }
+    .label { display: inline-block; font-size: 12px; font-weight: 700; color: #006b71; margin-bottom: 10px; }
+    pre { max-width: 100%; margin: 16px 0 0; padding: 18px; border-radius: 8px; background: #14252c; color: #e9f2f2; overflow-x: auto; font-size: 13px; line-height: 1.55; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .routes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .route { padding: 18px; border: 1px solid #dce5e5; border-radius: 9px; background: #fff; }
+    .route code { font-size: 13px; overflow-wrap: anywhere; }
+    .route p { color: #53636b; font-size: 14px; margin: 6px 0 0; }
+    .table-wrap { border: 1px solid #dce5e5; border-radius: 9px; overflow-x: auto; background: #fff; }
+    table { width: 100%; border-collapse: collapse; min-width: 620px; font-size: 14px; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e7eeee; vertical-align: top; }
+    th { color: #53636b; background: #f9fbfb; font-weight: 650; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #006b71; }
+    .note { border-left: 3px solid #008b91; padding: 12px 16px; background: #eaf4f3; border-radius: 0 7px 7px 0; font-size: 14px; }
+    .note p:last-child { margin-bottom: 0; }
+    footer { border-top: 1px solid #dce5e5; padding: 22px 0 36px; color: #53636b; font-size: 13px; }
+    @media (max-width: 760px) { .grid, .routes { grid-template-columns: 1fr; } .topbar { align-items: flex-start; flex-direction: column; padding-block: 16px; gap: 10px; } main { padding-top: 32px; } .panel { padding: 18px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap topbar">
+      <a class="brand" href="./">Qwen<span>3.8</span> · Cloudera Application</a>
+      <nav aria-label="Navegación principal">
+        <a href="#empezar">Cómo llamar</a>
+        <a href="#parametros">Parámetros</a>
+        <a href="./docs">OpenAPI</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="hero">
+      <span class="status">API preparada para recibir peticiones</span>
+      <p class="eyebrow">vLLM 0.29.0 · OpenAI compatible · SSE</p>
+      <h1>Tu modelo Qwen3.8 está disponible como API</h1>
+      <p class="lead">Usa la URL de esta Application para enviar mensajes a <strong>qwen3.8-27b-fp8</strong>. La ruta principal es <code>/v1/chat/completions</code>; con <code>stream: true</code> la respuesta llega por partes.</p>
+      <div class="base panel">
+        <strong>URL base de esta Application</strong>
+        <code data-base-url>{{BASE_URL}}</code>
+        <small class="muted">Para clientes OpenAI añade <code>/v1</code>. La URL pública puede requerir autenticación propia de Cloudera.</small>
+      </div>
+    </div>
+
+    <section id="empezar" aria-labelledby="empezar-title">
+      <div class="section-head">
+        <h2 id="empezar-title">Primera llamada</h2>
+        <p>Comprueba <a href="./health">/health</a> y <a href="./v1/models">/v1/models</a>; después prueba una conversación breve.</p>
+      </div>
+      <div class="grid">
+        <article class="panel">
+          <span class="label">Terminal · streaming SSE</span>
+          <h3>curl</h3>
+          <p class="muted">La opción <code>-N</code> muestra cada fragmento al llegar.</p>
+          <pre><code data-base-url>curl -N '{{BASE_URL}}/v1/chat/completions' \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"qwen3.8-27b-fp8","messages":[{"role":"user","content":"Hola, responde en una frase."}],"max_tokens":128,"stream":true}'</code></pre>
+        </article>
+        <article class="panel">
+          <span class="label">Python · cliente OpenAI</span>
+          <h3>SDK</h3>
+          <p class="muted">El SDK necesita un valor en <code>api_key</code> aunque vLLM no exija clave.</p>
+          <pre><code data-base-url>import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="{{BASE_URL}}/v1",
+    api_key=os.getenv("QWEN_API_KEY", "EMPTY"),
+)
+
+for chunk in client.chat.completions.create(
+    model="qwen3.8-27b-fp8",
+    messages=[{"role": "user", "content": "Hola"}],
+    max_tokens=128,
+    stream=True,
+):
+    text = chunk.choices[0].delta.content
+    if text:
+        print(text, end="", flush=True)</code></pre>
+        </article>
+      </div>
+      <div class="note" style="margin-top: 16px">
+        <p><strong>Autenticación:</strong> si configuraste <code>QWEN_API_KEY</code>, envía <code>Authorization: Bearer TU_CLAVE</code> en curl o usa esa clave en el SDK. El acceso público de Cloudera puede requerir otra autenticación y puede usar el mismo encabezado; compruébalo en tu instalación antes de llamar desde fuera.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="rutas-title">
+      <div class="section-head">
+        <h2 id="rutas-title">Rutas útiles</h2>
+        <p>Estas rutas están disponibles en el servidor mostrado en los logs.</p>
+      </div>
+      <div class="routes">
+        <div class="route"><strong>POST</strong> <code>/v1/chat/completions</code><p>Conversación, texto o una imagen por petición; admite streaming.</p></div>
+        <div class="route"><strong>GET</strong> <code>/v1/models</code><p>Modelo servido y nombre exacto para el campo <code>model</code>.</p></div>
+        <div class="route"><strong>GET</strong> <code>/health</code><p>Comprobación rápida de disponibilidad del servidor.</p></div>
+        <div class="route"><strong>GET</strong> <code>/docs</code><p>Esquema interactivo de todas las rutas y campos del servidor.</p></div>
+      </div>
+    </section>
+
+    <section id="parametros" aria-labelledby="parametros-title">
+      <div class="section-head">
+        <h2 id="parametros-title">Parámetros de la petición</h2>
+        <p>Los más útiles en <code>/v1/chat/completions</code>. En el SDK de OpenAI, pasa los campos propios de vLLM mediante <code>extra_body</code>; en HTTP van directamente en el JSON.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Uso</th><th>Notas</th></tr></thead>
+          <tbody>
+            <tr><td>model</td><td>Nombre del modelo</td><td><code>qwen3.8-27b-fp8</code>; requerido en los ejemplos.</td></tr>
+            <tr><td>messages</td><td>Historial con roles <code>system</code>, <code>user</code> y <code>assistant</code></td><td>Incluye la pregunta actual.</td></tr>
+            <tr><td>max_tokens</td><td>Límite de tokens de salida</td><td>También se admite <code>max_completion_tokens</code>. El total de entrada y salida debe caber en el contexto.</td></tr>
+            <tr><td>stream</td><td><code>true</code> para recibir fragmentos SSE</td><td>Usa un cliente que no acumule toda la respuesta.</td></tr>
+            <tr><td>temperature</td><td>Variación en la generación</td><td>El modelo carga por defecto <code>1.0</code> desde su configuración.</td></tr>
+            <tr><td>top_p</td><td>Muestreo por probabilidad acumulada</td><td>El modelo carga por defecto <code>0.95</code>.</td></tr>
+            <tr><td>top_k</td><td>Limita los candidatos por paso</td><td>Propio de vLLM; el modelo carga por defecto <code>20</code>.</td></tr>
+            <tr><td>min_p</td><td>Umbral relativo para candidatos</td><td>Propio de vLLM; usar mediante <code>extra_body</code>.</td></tr>
+            <tr><td>repetition_penalty</td><td>Reduce o aumenta repeticiones</td><td>Propio de vLLM; <code>1.0</code> es neutro.</td></tr>
+            <tr><td>presence_penalty</td><td>Favorece temas nuevos</td><td>Parámetro compatible con Chat Completions.</td></tr>
+            <tr><td>frequency_penalty</td><td>Penaliza términos frecuentes</td><td>Parámetro compatible con Chat Completions.</td></tr>
+            <tr><td>stop</td><td>Texto que detiene la salida</td><td>Cadena o lista de cadenas.</td></tr>
+            <tr><td>seed</td><td>Semilla de muestreo</td><td>Puede ayudar a reproducir una petición.</td></tr>
+            <tr><td>response_format</td><td>Formato restringido, por ejemplo JSON</td><td>Consulta el esquema de <a href="./docs">/docs</a> para sus variantes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin-top: 14px">En esta Application el contexto máximo está configurado a 262 144 tokens y se admite una imagen por petición; el vídeo está deshabilitado. Las herramientas automáticas y el parser de razonamiento requieren configuración adicional del servidor.</p>
+      <div class="note">
+        <p><strong>Ejemplo de parámetro propio de vLLM en Python:</strong> <code>extra_body={"top_k": 20, "min_p": 0.05}</code>. Para la lista completa y los tipos exactos consulta <a href="./docs">OpenAPI de esta instancia</a> y la <a href="https://docs.vllm.ai/en/v0.29.0/serving/online_serving/openai_compatible_server/">documentación de vLLM 0.29.0</a>.</p>
+      </div>
+    </section>
+  </main>
+  <footer><div class="wrap">Qwen3.8-27B-FP8 · Cloudera AI Workbench Application · vLLM 0.29.0</div></footer>
+  <script>
+    const base = new URL(".", window.location.href).href.replace(/\/$/, "");
+    for (const node of document.querySelectorAll("[data-base-url]")) {
+      node.textContent = node.textContent.replaceAll("{{BASE_URL}}", base);
+    }
+  </script>
+</body>
+</html>
