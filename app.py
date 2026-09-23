@@ -25,7 +25,10 @@ from pathlib import Path
 from typing import Any
 
 
-APP_DIR = Path(__file__).resolve().parent
+# Cloudera can execute the Application script as cells in a Jupyter kernel,
+# where __file__ does not exist. In that case the project is the working dir.
+RUNNING_IN_NOTEBOOK = "__file__" not in globals()
+APP_DIR = Path.cwd().resolve() if RUNNING_IN_NOTEBOOK else Path(__file__).resolve().parent
 PYTHON_VERSION = f"{sys.version_info.major}{sys.version_info.minor}"
 VLLM_VERSION = os.getenv("VLLM_VERSION", "0.29.0")
 CUDA_VARIANT = os.getenv("VLLM_CUDA_VARIANT", "129")
@@ -327,10 +330,14 @@ def main() -> None:
     log(f"Bootstrap completed in {time.monotonic() - started:.1f}s")
     log("Starting the OpenAI-compatible vLLM server on 127.0.0.1 only")
 
-    # exec keeps vLLM as PID 1 of the Application workload so Cloudera signals,
-    # exit codes, and log collection apply directly to the serving process.
-    os.chdir(APP_DIR)
-    os.execve(str(venv_python), command, server_env)
+    if RUNNING_IN_NOTEBOOK:
+        # Replacing the kernel would disconnect the notebook runner that owns
+        # this Application. Keep its cell active while vLLM serves requests.
+        subprocess.run(command, env=server_env, cwd=APP_DIR, check=True)
+    else:
+        # In a regular script, let vLLM receive signals and exit codes directly.
+        os.chdir(APP_DIR)
+        os.execve(str(venv_python), command, server_env)
 
 
 if __name__ == "__main__":

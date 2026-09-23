@@ -16,6 +16,11 @@ En Cloudera AI Workbench SP3:
 6. Asigne al menos 8 vCPU y 64 GiB RAM; se recomiendan 16 vCPU y 128 GiB.
 7. Configure almacenamiento suficiente para el virtualenv y la caché del modelo.
 
+Si Cloudera ejecuta el script como celdas de Jupyter, `app.py` utiliza el
+directorio de trabajo del proyecto y mantiene el kernel activo mientras vLLM
+sirve peticiones. Al ejecutarlo como archivo Python, utiliza la ubicación del
+archivo y reemplaza el proceso con vLLM.
+
 El código exige `CDSW_APP_PORT` y enlaza exclusivamente a:
 
 ```text
@@ -105,6 +110,6 @@ Si el ingress de Cloudera utiliza el mismo header `Authorization`, no active `QW
 
 ## English summary
 
-This project runs Qwen3.8-27B-FP8 as a long-lived Cloudera AI Workbench SP3 Application with vLLM's OpenAI-compatible API and SSE streaming. `app.py` performs the complete bootstrap: it creates an isolated versioned virtual environment, installs and validates the cu129 serving stack, then replaces itself with the vLLM server bound strictly to `127.0.0.1:$CDSW_APP_PORT`.
+This project runs Qwen3.8-27B-FP8 as a long-lived Cloudera AI Workbench SP3 Application with vLLM's OpenAI-compatible API and SSE streaming. `app.py` performs the complete bootstrap: it creates an isolated versioned virtual environment, installs and validates the cu129 serving stack, then starts the vLLM server bound strictly to `127.0.0.1:$CDSW_APP_PORT`. When Cloudera runs the script in Jupyter, the kernel remains active while vLLM serves requests.
 
 Use one full A100 80 GB, keep BF16 KV cache on SM80, keep the FlashInfer sampler disabled unless a complete JIT toolchain is validated, and never launch multiple HTTP workers. Test Cloudera ingress authentication, SSE buffering, and connection timeouts before production or RAG Studio integration.
