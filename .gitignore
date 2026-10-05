@@ -1,5 +1,6 @@
 .venv-*/
 .qwen-venv-install.lock
+.qwen-h100-venv-install.lock
 __pycache__/
 *.py[cod]
 .DS_Store

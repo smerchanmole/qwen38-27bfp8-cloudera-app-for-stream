@@ -1,7 +1,7 @@
 # Qwen3.8-27B-FP8 en Cloudera AI Workbench
 
 <p align="center">
-  <strong>Una Application · una A100 · una API OpenAI compatible</strong><br>
+  <strong>Una Application · una A100 o H100 · una API OpenAI compatible</strong><br>
   Texto e imagen de entrada · respuestas en JSON o streaming SSE · probador web integrado
 </p>
 
@@ -20,8 +20,9 @@ Este proyecto sirve `Qwen/Qwen3.8-27B-FP8` con **vLLM 0.29.0+cu129** dentro de u
 | Pieza | Responsabilidad |
 | --- | --- |
 | `app.py` | Detecta el puerto de Cloudera, crea o reutiliza un virtualenv aislado, instala y valida dependencias, y arranca vLLM. |
+| `apph100.py` | Variante autocontenida para una H100 completa de 80 GB, con perfil O3, FlashAttention 3 y mayor concurrencia. |
 | `qwen_home.py` + `qwen_home.html` | Añaden la portada y el probador en `/`; las rutas de API siguen atendidas por vLLM. |
-| vLLM | Carga el modelo en la A100 y sirve la API OpenAI compatible, incluido streaming SSE. |
+| vLLM | Carga el modelo en la GPU y sirve la API OpenAI compatible, incluido streaming SSE. |
 | Cloudera Application | Mantiene el proceso en ejecución y publica su URL mediante el ingress de la instalación. |
 
 El primer arranque descarga dependencias y pesos. Los siguientes arranques reutilizan el entorno validado y, si la caché persiste, los pesos descargados. Cuando Cloudera ejecuta `app.py` como celdas de Jupyter, el kernel permanece activo mientras vLLM sirve peticiones.
@@ -64,6 +65,32 @@ Desde el proyecto, entra en **Applications → New Application** y configura:
 | Variables | Solo las que necesites de [Configuración del servidor](#configuración-del-servidor) |
 
 Pulsa **Create Application**. El script obtiene `CDSW_APP_PORT` del entorno y escucha únicamente en `127.0.0.1:$CDSW_APP_PORT`; **no introduzcas host ni puerto manualmente**. Esta secuencia sigue el flujo de [Analytical Applications de Cloudera](https://docs.cloudera.com/machine-learning/cloud/applications/index.html).
+
+### Variante optimizada para H100
+
+Selecciona **`apph100.py`** como Script y asigna **una H100 completa de 80 GB**, con el Runtime Nvidia GPU Edition y Python 3.11. Conserva la misma API, portada, soporte de imágenes, autenticación y ejecución desde Jupyter. El script comprueba en cada arranque que haya exactamente una H100 SM90 visible con al menos 75 GiB de VRAM; rechaza una A100 o una partición MIG pequeña con un mensaje explícito.
+
+| Ajuste | `app.py` · A100 | `apph100.py` · H100 | Propósito |
+| --- | --- | --- | --- |
+| Backend de atención | `TRITON_ATTN` | `FLASH_ATTN` (FA3 en SM90) | Aprovechar los kernels de Hopper. |
+| `QWEN_ENFORCE_EAGER` | `true` | `false` | Activar compilación y CUDA Graphs. |
+| `QWEN_OPTIMIZATION_LEVEL` | No se fija | `3` | Nivel O3 de vLLM; favorece rendimiento sobre tiempo de arranque. |
+| `QWEN_PERFORMANCE_MODE` | No se fija | `throughput` | Priorizar tokens/s agregados con varias peticiones. |
+| `QWEN_ASYNC_SCHEDULING` | No se fija | `true` | Reducir pausas entre trabajo de CPU y GPU. |
+| `QWEN_MAX_NUM_SEQS` | `1` | `16` | Permitir batching de peticiones concurrentes. |
+| `QWEN_MAX_NUM_BATCHED_TOKENS` | `8192` | `16384` | Aumentar el trabajo de prefill por iteración. |
+| `QWEN_GPU_MEMORY_UTILIZATION` | `0.90` | `0.95` | Reservar más memoria para la caché de vLLM. |
+| `QWEN_KV_CACHE_DTYPE` | `bfloat16` | `bfloat16` | Preservar precisión sin añadir una cuantización KV sin calibrar. |
+
+La H100 acelera por hardware los pesos FP8 del mismo checkpoint; no hace falta cambiar el modelo. La caché BF16 es independiente de esos pesos FP8. Para probar KV FP8 usa `QWEN_KV_CACHE_DTYPE=fp8_e4m3` con un checkpoint cuyas escalas KV estén calibradas y comprueba la calidad: en vLLM 0.29.0, el modo sin calibración usa escalas 1.0. Tampoco reduce a FP8 los estados de las capas de atención lineal de este modelo híbrido. [Backends de atención](https://docs.vllm.ai/en/v0.29.0/design/attention_backends/), [KV cuantizada](https://docs.vllm.ai/en/v0.29.0/features/quantization/quantized_kvcache/).
+
+**Importante al cambiar de Script:** elimina o ajusta las variables `QWEN_*` que habías fijado para A100. Las variables explícitas prevalecen sobre los nuevos valores por defecto. No necesitas copiar la tabla a Cloudera para usar el perfil H100.
+
+Este perfil utiliza un virtualenv separado con sufijo **`-h100`**. El primer arranque instala de nuevo el stack y O3 puede alargar la compilación inicial; los pesos usan la caché de Hugging Face habitual. Los ajustes se apoyan en las [opciones de vLLM 0.29.0](https://docs.vllm.ai/en/v0.29.0/configuration/engine_args/); **el rendimiento máximo real requiere medir en tu H100 y con tus peticiones**. No se ha validado inferencia en una H100 desde este entorno.
+
+Para una sola conversación, prueba `QWEN_PERFORMANCE_MODE=interactivity` y `QWEN_MAX_NUM_SEQS=4` y compara el tiempo hasta el primer token y tokens/s. Para concurrencia, conserva `throughput`. El límite de 262 144 tokens es por petición; 16 secuencias no garantizan que las 16 puedan llenar ese contexto a la vez. Si falta memoria durante la captura de gráficos o la carga, baja `QWEN_MAX_NUM_SEQS` a 4 y `QWEN_MAX_NUM_BATCHED_TOKENS` a 8192; si persiste, reduce el contexto. Como diagnóstico de problemas de compilación, `QWEN_ENFORCE_EAGER=true` desactiva O3 y los gráficos.
+
+FlashInfer **sampler** sigue desactivado para evitar el JIT que falló en el Runtime de Cloudera. Esto no desactiva FlashAttention 3 ni el cómputo FP8 de Hopper. Solo prueba `VLLM_USE_FLASHINFER_SAMPLER=1` si el Runtime dispone del toolchain NVCC y Ninja necesario.
 
 ### 3. Esperar el primer arranque
 
