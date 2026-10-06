@@ -73,6 +73,7 @@ Selecciona **`apph100.py`** como Script y asigna **una H100 completa de 80 GB**,
 | Ajuste | `app.py` · A100 | `apph100.py` · H100 | Propósito |
 | --- | --- | --- | --- |
 | Backend de atención | `TRITON_ATTN` | `FLASH_ATTN` (FA3 en SM90) | Aprovechar los kernels de Hopper. |
+| `QWEN_GDN_PREFILL_BACKEND` | `triton` | `triton` | Evitar el JIT NVCC de FlashInfer en la atención lineal. |
 | `QWEN_ENFORCE_EAGER` | `true` | `false` | Activar compilación y CUDA Graphs. |
 | `QWEN_OPTIMIZATION_LEVEL` | No se fija | `3` | Nivel O3 de vLLM; favorece rendimiento sobre tiempo de arranque. |
 | `QWEN_PERFORMANCE_MODE` | No se fija | `throughput` | Priorizar tokens/s agregados con varias peticiones. |
@@ -91,6 +92,8 @@ Este perfil utiliza un virtualenv separado con sufijo **`-h100`**. El primer arr
 Para una sola conversación, prueba `QWEN_PERFORMANCE_MODE=interactivity` y `QWEN_MAX_NUM_SEQS=4` y compara el tiempo hasta el primer token y tokens/s. Para concurrencia, conserva `throughput`. El límite de 262 144 tokens es por petición; 16 secuencias no garantizan que las 16 puedan llenar ese contexto a la vez. Si falta memoria durante la captura de gráficos o la carga, baja `QWEN_MAX_NUM_SEQS` a 4 y `QWEN_MAX_NUM_BATCHED_TOKENS` a 8192; si persiste, reduce el contexto. Como diagnóstico de problemas de compilación, `QWEN_ENFORCE_EAGER=true` desactiva O3 y los gráficos.
 
 FlashInfer **sampler** sigue desactivado para evitar el JIT que falló en el Runtime de Cloudera. Esto no desactiva FlashAttention 3 ni el cómputo FP8 de Hopper. Solo prueba `VLLM_USE_FLASHINFER_SAMPLER=1` si el Runtime dispone del toolchain NVCC y Ninja necesario.
+
+DeepGEMM también queda desactivado por defecto con `VLLM_USE_DEEP_GEMM=0`: en la H100 de Cloudera observamos `NVCC compilation failed` y un error de ensamblador en `ld_st.cuh` después de cargar el modelo. vLLM puede seleccionar otros kernels FP8. El prefill GDN usa Triton; esta selección es independiente del backend de atención `FLASH_ATTN`. Con un toolchain compatible y comprobado puedes probar `VLLM_USE_DEEP_GEMM=1` y `QWEN_GDN_PREFILL_BACKEND=flashinfer` y medir la diferencia. La instalación del wheel cu129 aporta bibliotecas CUDA, **no actualiza el compilador NVCC del Runtime**. [Control de DeepGEMM en vLLM](https://docs.vllm.ai/en/v0.29.0/api/vllm/utils/deep_gemm/).
 
 ### 3. Esperar el primer arranque
 
@@ -259,6 +262,7 @@ Las siguientes son **variables de entorno de la Application**: se fijan antes de
 | `QWEN_GPU_MEMORY_UTILIZATION` | `0.90` | Fracción de memoria reservada; el código limita el valor a `0.95`. |
 | `QWEN_KV_CACHE_DTYPE` | `bfloat16` | Mantener con Triton en A100 SM80. |
 | `QWEN_ATTENTION_BACKEND` | `TRITON_ATTN` | Backend usado en la prueba. |
+| `QWEN_GDN_PREFILL_BACKEND` | `triton` | Backend de atención lineal de Qwen; usa `flashinfer` o `cutedsl` solo tras validar el toolchain. |
 | `QWEN_ENFORCE_EAGER` | `true` | Perfil conservador; desactiva CUDA Graphs y compilación. |
 | `QWEN_CPU_OFFLOAD_GB` | `0` | No necesario en la A100 usada en la prueba. |
 | `QWEN_MAX_IMAGES_PER_PROMPT` | `1` | Número máximo de imágenes; el vídeo sigue en cero. |
@@ -270,7 +274,7 @@ Las siguientes son **variables de entorno de la Application**: se fijan antes de
 
 **En redes cerradas:** `VLLM_WHEEL_URL`, `PYTORCH_INDEX_URL`, `QWEN_MODEL_ID` y `HF_HOME` permiten utilizar mirrors o snapshots internos. `VLLM_VERSION`, `VLLM_CUDA_VARIANT` y `TRANSFORMERS_VERSION` seleccionan versiones del stack; cambiarlas requiere validar compatibilidad.
 
-**Opciones avanzadas:** `VLLM_USE_FLASHINFER_SAMPLER=0` evita el JIT del sampler FlashInfer que falló con el toolchain visto en el Runtime. `VLLM_ALLOWED_MEDIA_DOMAINS` limita dominios de imágenes remotas. Los parsers `QWEN_REASONING_PARSER` y `QWEN_TOOL_CALL_PARSER` están desactivados por defecto; prueba cada uno por separado si necesitas esas funciones.
+**Opciones avanzadas:** `VLLM_USE_FLASHINFER_SAMPLER=0` y `VLLM_USE_DEEP_GEMM=0` son los valores predeterminados de ambos scripts para evitar kernels con JIT NVCC incompatible con el Runtime observado. `VLLM_ALLOWED_MEDIA_DOMAINS` limita dominios de imágenes remotas. Los parsers `QWEN_REASONING_PARSER` y `QWEN_TOOL_CALL_PARSER` están desactivados por defecto; prueba cada uno por separado si necesitas esas funciones.
 
 ### Autenticación y acceso externo
 
@@ -295,6 +299,7 @@ Los cambios solo de README no alteran el proceso. Los cambios de la portada se c
 | --- | --- |
 | `NameError: __file__ is not defined` | Una versión anterior del script asumía ejecución como archivo. Actualiza el proyecto y reinicia; la versión actual reconoce la ejecución en celdas de Jupyter. |
 | `pip check` muestra conflictos con `mlflow` o `cmladdons` | Una versión anterior dejaba entrar paquetes del Runtime en el virtualenv. Actualiza y reinicia; el Python actual se ejecuta con `-I` y limpia `PYTHONPATH`. |
+| H100: `NVCC compilation failed`, `ld_st.cuh`, restricción `q` | El compilador del Runtime no compila el kernel DeepGEMM seleccionado automáticamente. Actualiza el script, fija `VLLM_USE_DEEP_GEMM=0` y `QWEN_GDN_PREFILL_BACKEND=triton`, y reinicia. No hace falta reinstalar el virtualenv. `--enforce-eager` no desactiva este JIT. |
 | Advertencia de `HF_TOKEN` o de prefetch en NFS | Son avisos observados en la prueba; si el servidor termina en `Application startup complete`, no bloquean el arranque. `HF_TOKEN` puede mejorar los límites de descarga. |
 | Aviso de Marlin FP8 en A100 | La A100 no tiene cálculo FP8 nativo; vLLM usa Marlin para los pesos. Puede afectar al rendimiento, pero el modelo cargó en la prueba. |
 | La portada carga, pero una petición devuelve 401/403 o HTML | Revisa permisos/sesión de Cloudera, `QWEN_API_KEY` y el tratamiento del encabezado `Authorization` en el ingress. |

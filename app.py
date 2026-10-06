@@ -228,6 +228,11 @@ print('Architecture', Qwen3_5ForConditionalGeneration.__name__)
         for filename in ("qwen_home.py", "qwen_home.html"):
             shutil.copyfile(APP_DIR / filename, site_packages / filename)
 
+    return venv_python, serving_environment(venv_dir)
+
+
+def serving_environment(venv_dir: Path) -> dict[str, str]:
+    """Keep serving isolated and avoid NVCC JIT kernels in Cloudera by default."""
     server_env = os.environ.copy()
     server_env["PYTHONNOUSERSITE"] = "1"
     for name in ("PYTHONPATH", "PYTHONHOME", "PYTHONUSERBASE"):
@@ -241,10 +246,14 @@ print('Architecture', Qwen3_5ForConditionalGeneration.__name__)
     # NVCC toolchain.  Disable only FlashInfer sampling JIT; Triton attention
     # and Marlin FP8 weight kernels remain enabled.
     server_env.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
+    # On H100, auto-selected DeepGEMM kernels invoke the Runtime's NVCC.
+    # A cu129 wheel does not upgrade that compiler; use other FP8 kernels
+    # unless a compatible complete toolchain is explicitly enabled.
+    server_env.setdefault("VLLM_USE_DEEP_GEMM", "0")
     # Prevent an allowed public URL from redirecting the media loader to an
     # internal address and bypassing VLLM_ALLOWED_MEDIA_DOMAINS.
     server_env.setdefault("VLLM_MEDIA_URL_ALLOW_REDIRECTS", "0")
-    return venv_python, server_env
+    return server_env
 
 
 def server_command(venv_python: Path, port: int) -> list[str]:
@@ -261,6 +270,9 @@ def server_command(venv_python: Path, port: int) -> list[str]:
     kv_dtype = os.getenv("QWEN_KV_CACHE_DTYPE", "bfloat16")
     attention_backend = os.getenv("QWEN_ATTENTION_BACKEND", "TRITON_ATTN")
     enforce_eager = env_bool("QWEN_ENFORCE_EAGER", True)
+    gdn_prefill = os.getenv("QWEN_GDN_PREFILL_BACKEND", "triton").strip()
+    if gdn_prefill not in {"triton", "flashinfer", "cutedsl"}:
+        raise ValueError("QWEN_GDN_PREFILL_BACKEND must be triton, flashinfer or cutedsl")
 
     # The OpenAI server is intentionally bound only to the loopback address
     # and the Cloudera-provided port.  Never replace this with 0.0.0.0.
@@ -288,6 +300,8 @@ def server_command(venv_python: Path, port: int) -> list[str]:
         kv_dtype,
         "--attention-backend",
         attention_backend,
+        "--gdn-prefill-backend",
+        gdn_prefill,
         "--max-model-len",
         str(max_model_len),
         "--gpu-memory-utilization",
@@ -334,7 +348,8 @@ def server_command(venv_python: Path, port: int) -> list[str]:
         f"model={model_id} served_name={served_name} context={max_model_len} "
         f"max_num_seqs={max_num_seqs} prefill={max_batched} "
         f"gpu_utilization={gpu_util} kv_cache={kv_dtype} "
-        f"attention={attention_backend} eager={enforce_eager} images={max_images}"
+        f"attention={attention_backend} gdn_prefill={gdn_prefill} "
+        f"eager={enforce_eager} images={max_images}"
     )
     return command
 
